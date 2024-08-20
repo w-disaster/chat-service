@@ -1,31 +1,22 @@
-FROM node:lts as builder
+# Use Node 20.16 alpine as base image
+FROM node:20.16-alpine3.19 AS base
 
-# Create app directory
-WORKDIR /usr/src/app
+# Change the working directory to /build
+WORKDIR /build
 
-# Install app dependencies
-COPY package*.json ./
-
-RUN npm ci
-
+# Copy the package.json and package-lock.json files to the /build directory
 COPY . .
 
-RUN npm run build
+RUN npm install
 
-FROM node:lts-slim
+# Install production dependencies and clean the cache
+RUN npm ci && npm cache clean --force
 
-ENV NODE_ENV production
-USER node
+# Copy the entire source code into the container
+COPY . .
 
-# Create app directory
-WORKDIR /usr/src/app
+# Document the port that may need to be published
+EXPOSE 5000
 
-# Install app dependencies
-COPY package*.json ./
-
-RUN npm ci
-
-COPY --from=builder /usr/src/app/dist ./dist
-
-EXPOSE 8080
-CMD [ "node", "dist/index.js" ]
+# Start the application
+CMD ["node", "src/server.js"]
